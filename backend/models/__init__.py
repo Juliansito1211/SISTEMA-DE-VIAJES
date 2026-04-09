@@ -5,6 +5,7 @@ from models.configuracion import Configuracion
 from models.viaje import Viaje
 from models.vehiculo import VehiculoCatalogo, ViajeVehiculo
 from models.auditoria import Auditoria
+from models.grua import Grua
 
 __all__ = [
     "Empresa",
@@ -15,4 +16,5 @@ __all__ = [
     "VehiculoCatalogo",
     "ViajeVehiculo",
     "Auditoria",
+    "Grua",
 ]

@@ -1,8 +1,8 @@
 import client from './client'
 
 export const viajesApi = {
-  listar: () =>
-    client.get('/viajes').then((r) => r.data),
+  listar: (params) =>
+    client.get('/viajes', { params }).then((r) => r.data),
 
   obtener: (id) =>
     client.get(`/viajes/${id}`).then((r) => r.data),
@@ -21,4 +21,16 @@ export const viajesApi = {
 
   reabrir: (id) =>
     client.post(`/viajes/${id}/reabrir`).then((r) => r.data),
+
+  auditoria: (id) =>
+    client.get(`/viajes/${id}/auditoria`).then((r) => r.data),
+
+  cancelar: (id) =>
+    client.delete(`/viajes/${id}`).then((r) => r.data),
+
+  aceptar: (id) =>
+    client.post(`/viajes/${id}/aceptar`).then((r) => r.data),
+
+  asignarOperador: (id, conductor_id) =>
+    client.patch(`/viajes/${id}/asignar-operador`, { conductor_id }).then((r) => r.data),
 }

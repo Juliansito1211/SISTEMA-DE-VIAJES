@@ -9,6 +9,7 @@ export default function FormVehiculo({ viajeId, vehiculo, onSuccess, onClose }) 
     modelo: '',
     color: '',
     monto: '',
+    observacion: '',
   })
   const [sugerencias, setSugerencias] = useState([])
   const [error, setError] = useState('')
@@ -22,6 +23,7 @@ export default function FormVehiculo({ viajeId, vehiculo, onSuccess, onClose }) 
         modelo: vehiculo.modelo || '',
         color: vehiculo.color || '',
         monto: vehiculo.monto != null ? String(vehiculo.monto) : '',
+        observacion: vehiculo.observacion || '',
       })
     }
   }, [vehiculo])
@@ -39,7 +41,7 @@ export default function FormVehiculo({ viajeId, vehiculo, onSuccess, onClose }) 
   }
 
   const seleccionarSugerencia = (v) => {
-    setForm({ placa: v.placa, marca: v.marca || '', modelo: v.modelo || '', color: v.color || '', monto: '' })
+    setForm({ placa: v.placa, marca: v.marca || '', modelo: v.modelo || '', color: v.color || '', monto: '', observacion: '' })
     setSugerencias([])
   }
 
@@ -55,6 +57,7 @@ export default function FormVehiculo({ viajeId, vehiculo, onSuccess, onClose }) 
       modelo: form.modelo.trim() || null,
       color: form.color.trim() || null,
       monto: form.monto !== '' ? parseFloat(form.monto) : null,
+      observacion: form.observacion.trim() || null,
     }
 
     setLoading(true)
@@ -141,6 +144,18 @@ export default function FormVehiculo({ viajeId, vehiculo, onSuccess, onClose }) 
                   placeholder="Opcional"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="label">Observación</label>
+              <textarea
+                name="observacion"
+                value={form.observacion}
+                onChange={handleChange}
+                className="input resize-none"
+                rows={2}
+                placeholder="Ej: rayón en puerta derecha, sin espejo..."
+              />
             </div>
 
             {error && (

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { vehiculosApi } from '../api/vehiculos'
 import { viajesApi } from '../api/viajes'
+import { formatMonto } from '../utils/formato'
 
 const METODOS_PAGO = ['EFECTIVO', 'TRANSFERENCIA', 'TARJETA', 'OTRO']
 
@@ -42,7 +43,7 @@ export default function ValidacionFinalizar({ viaje, vehiculos, fotoObligatoria,
     }))
 
     if (items.some((i) => isNaN(i.monto) || i.monto <= 0)) {
-      setError('Todos los montos deben ser mayores a 0')
+      setError('Todos los montos deben ser mayores a 0 (ej: 600000)')
       return
     }
 
@@ -72,9 +73,9 @@ export default function ValidacionFinalizar({ viaje, vehiculos, fotoObligatoria,
               <span className="font-mono text-sm font-semibold text-gray-800 w-24 shrink-0">{v.placa}</span>
               <input
                 type="number"
-                step="0.01"
-                min="0.01"
-                placeholder="Monto"
+                step="1"
+                min="1"
+                placeholder="Ej: 600000"
                 value={montos[v.id]}
                 onChange={(e) => setMontos((m) => ({ ...m, [v.id]: e.target.value }))}
                 className="input"
@@ -125,7 +126,7 @@ export default function ValidacionFinalizar({ viaje, vehiculos, fotoObligatoria,
     <Overlay onClose={onClose}>
       <h2 className="text-lg font-bold text-gray-900 mb-1">Finalizar viaje</h2>
       <p className="text-sm text-gray-500 mb-5">
-        Monto total: <span className="font-bold text-gray-900">$ {totalActual.toFixed(2)}</span>
+        Monto total: <span className="font-bold text-gray-900">{formatMonto(totalActual)}</span>
       </p>
 
       <div className="space-y-4 mb-5">

@@ -43,6 +43,7 @@ INSERT INTO roles (
     perm_editar_vehiculo,
     perm_crear_usuarios,
     perm_gestionar_roles,
+    perm_gestionar_gruas,
     perm_ver_auditoria,
     perm_configuracion
 ) VALUES (
@@ -58,6 +59,7 @@ INSERT INTO roles (
     TRUE,   -- perm_editar_vehiculo
     FALSE,  -- perm_crear_usuarios
     FALSE,  -- perm_gestionar_roles
+    FALSE,  -- perm_gestionar_gruas
     FALSE,  -- perm_ver_auditoria
     FALSE   -- perm_configuracion
 );
@@ -77,6 +79,7 @@ INSERT INTO roles (
     perm_editar_vehiculo,
     perm_crear_usuarios,
     perm_gestionar_roles,
+    perm_gestionar_gruas,
     perm_ver_auditoria,
     perm_configuracion
 ) VALUES (
@@ -92,6 +95,7 @@ INSERT INTO roles (
     TRUE,   -- perm_editar_vehiculo
     FALSE,  -- perm_crear_usuarios
     FALSE,  -- perm_gestionar_roles
+    FALSE,  -- perm_gestionar_gruas
     TRUE,   -- perm_ver_auditoria
     FALSE   -- perm_configuracion
 );
@@ -111,6 +115,7 @@ INSERT INTO roles (
     perm_editar_vehiculo,
     perm_crear_usuarios,
     perm_gestionar_roles,
+    perm_gestionar_gruas,
     perm_ver_auditoria,
     perm_configuracion
 ) VALUES (
@@ -126,6 +131,7 @@ INSERT INTO roles (
     TRUE,   -- perm_editar_vehiculo
     TRUE,   -- perm_crear_usuarios
     TRUE,   -- perm_gestionar_roles
+    TRUE,   -- perm_gestionar_gruas
     TRUE,   -- perm_ver_auditoria
     TRUE    -- perm_configuracion
 );

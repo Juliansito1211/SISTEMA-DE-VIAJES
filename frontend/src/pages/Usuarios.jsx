@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
+import InputPassword from '../components/InputPassword'
 
 export default function Usuarios() {
   const navigate = useNavigate()
@@ -187,13 +188,10 @@ function FormUsuario({ usuario, roles, puedeGestionarRoles, onSuccess, onClose }
               <label className="label">
                 {esEdicion ? 'Nueva contraseña (dejar vacío para no cambiar)' : 'Contraseña *'}
               </label>
-              <input
+              <InputPassword
                 name="password"
-                type="password"
                 value={form.password}
                 onChange={handleChange}
-                className="input"
-                required={!esEdicion}
                 placeholder={esEdicion ? '••••••••' : ''}
               />
             </div>

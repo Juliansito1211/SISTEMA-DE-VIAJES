@@ -10,6 +10,7 @@ class VehiculoAgregar(BaseModel):
     modelo: str | None = None
     color: str | None = None
     monto: Decimal | None = None
+    observacion: str | None = None
 
 
 class VehiculoUpdate(BaseModel):
@@ -18,6 +19,7 @@ class VehiculoUpdate(BaseModel):
     modelo: str | None = None
     color: str | None = None
     monto: Decimal | None = None
+    observacion: str | None = None
 
 
 class MontoItem(BaseModel):
@@ -39,6 +41,7 @@ class ViajeVehiculoOut(BaseModel):
     color: str | None
     monto: Decimal | None
     orden: int
+    observacion: str | None
     agregado_en: datetime
 
     model_config = {"from_attributes": True}

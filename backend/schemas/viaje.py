@@ -8,11 +8,13 @@ from schemas.vehiculo import ViajeVehiculoOut
 class ViajeCreate(BaseModel):
     origen: str
     destino: str
+    programado_para: datetime | None = None
+    conductor_id: uuid.UUID | None = None
 
 
 class ViajeIniciar(BaseModel):
-    placa_grua: str
-    marca_grua: str
+    grua_id: uuid.UUID
+    observacion_grua: str | None = None
 
 
 class ViajeOut(BaseModel):
@@ -21,6 +23,10 @@ class ViajeOut(BaseModel):
     creado_por: uuid.UUID
     creado_por_nombre: str
     iniciado_por: uuid.UUID | None
+    conductor_id: uuid.UUID | None
+    conductor_nombre: str | None
+    codigo: str | None
+    observacion_grua: str | None
     placa_grua: str | None
     marca_grua: str | None
     origen: str
@@ -30,6 +36,7 @@ class ViajeOut(BaseModel):
     metodo_pago: str | None
     foto_recibo_url: str | None
     creado_en: datetime
+    programado_para: datetime | None = None
     iniciado_en: datetime | None
     finalizado_en: datetime | None
 
@@ -48,6 +55,17 @@ class ViajeFinalizar(BaseModel):
 
 class ViajeDetalle(ViajeOut):
     vehiculos: list[ViajeVehiculoOut] = []
+
+
+class AuditoriaViajeOut(BaseModel):
+    id: uuid.UUID
+    accion: str
+    usuario_nombre: str
+    datos_antes: dict | None
+    datos_despues: dict | None
+    realizado_en: datetime
+
+    model_config = {"from_attributes": True}
 
 
 ViajeDetalle.model_rebuild()

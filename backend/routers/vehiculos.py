@@ -7,6 +7,7 @@ from database import get_db
 from dependencies import get_current_user, require
 from models.usuario import Usuario
 from models.vehiculo import VehiculoCatalogo, ViajeVehiculo
+from models.viaje import Viaje as ViajeModel
 from schemas.vehiculo import (
     VehiculoAgregar,
     VehiculoUpdate,
@@ -21,6 +22,45 @@ from services.viajes import (
     registrar_auditoria,
     viaje_a_dict,
 )
+
+ESTADOS_BLOQUEANTES = ["NO_INICIADO", "PROGRAMADO", "PENDIENTE_ACEPTAR", "EN_CURSO"]
+
+ESTADO_LABEL = {
+    "NO_INICIADO": "pendiente / programado",
+    "PENDIENTE_ACEPTAR": "pendiente de aceptar",
+    "EN_CURSO": "en curso",
+}
+
+
+def _validar_vehiculo_libre(
+    vehiculo_id: uuid.UUID,
+    placa: str,
+    viaje_id_actual: uuid.UUID,
+    empresa_id: uuid.UUID,
+    db: Session,
+) -> None:
+    """Lanza 400 si el vehículo ya está en otro viaje activo o pendiente."""
+    resultado = (
+        db.query(ViajeModel)
+        .join(ViajeVehiculo, ViajeVehiculo.viaje_id == ViajeModel.id)
+        .filter(
+            ViajeVehiculo.vehiculo_id == vehiculo_id,
+            ViajeModel.estado.in_(ESTADOS_BLOQUEANTES),
+            ViajeModel.id != viaje_id_actual,
+            ViajeModel.empresa_id == empresa_id,
+        )
+        .first()
+    )
+    if resultado:
+        label = ESTADO_LABEL.get(resultado.estado, resultado.estado)
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"El vehículo {placa} ya está en otro viaje ({label}). "
+                f"No se puede agregar hasta que ese viaje finalice o se cancele."
+            ),
+        )
+
 
 # ── Router anidado bajo /viajes ────────────────────────────────────────────────
 router = APIRouter(prefix="/viajes/{viaje_id}/vehiculos", tags=["vehículos"])
@@ -42,6 +82,7 @@ def _vv_out(vv: ViajeVehiculo) -> ViajeVehiculoOut:
         color=vv.vehiculo.color,
         monto=vv.monto,
         orden=vv.orden,
+        observacion=vv.observacion,
         agregado_en=vv.agregado_en,
     )
 
@@ -101,6 +142,9 @@ def agregar_vehiculo(
         color=body.color,
     )
 
+    # Validar: el vehículo no puede estar en otro viaje activo o pendiente
+    _validar_vehiculo_libre(vehiculo.id, vehiculo.placa, viaje.id, user.empresa_id, db)
+
     # Siguiente número de orden
     siguiente_orden = (
         db.query(ViajeVehiculo)
@@ -113,6 +157,7 @@ def agregar_vehiculo(
         vehiculo_id=vehiculo.id,
         monto=body.monto,
         orden=siguiente_orden,
+        observacion=body.observacion,
     )
     db.add(vv)
 
@@ -164,6 +209,8 @@ def editar_vehiculo(
                 modelo=body.modelo,
                 color=body.color,
             )
+            # Validar que el nuevo vehículo no esté en otro viaje activo o pendiente
+            _validar_vehiculo_libre(nuevo_vehiculo.id, nuevo_vehiculo.placa, viaje.id, user.empresa_id, db)
             vv.vehiculo_id = nuevo_vehiculo.id
             vehiculo = nuevo_vehiculo
 
@@ -175,6 +222,8 @@ def editar_vehiculo(
         vehiculo.color = body.color
     if body.monto is not None:
         vv.monto = body.monto
+    if body.observacion is not None:
+        vv.observacion = body.observacion
 
     # Recalcular monto_total
     db.flush()

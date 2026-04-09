@@ -117,12 +117,12 @@ export default function NuevoViaje() {
                 <input
                   name="monto"
                   type="number"
-                  step="0.01"
+                  step="1"
                   min="0"
                   value={vehiculo.monto}
                   onChange={handleVehChange}
                   className="input"
-                  placeholder="Opcional"
+                  placeholder="Ej: 150000"
                 />
               </div>
             </div>

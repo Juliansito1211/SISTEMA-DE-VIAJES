@@ -65,6 +65,7 @@ def me(user: Usuario = Depends(get_current_user)):
         perm_editar_vehiculo=rol.perm_editar_vehiculo,
         perm_crear_usuarios=rol.perm_crear_usuarios,
         perm_gestionar_roles=rol.perm_gestionar_roles,
+        perm_gestionar_gruas=rol.perm_gestionar_gruas,
         perm_ver_auditoria=rol.perm_ver_auditoria,
         perm_configuracion=rol.perm_configuracion,
     )

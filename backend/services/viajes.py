@@ -1,3 +1,5 @@
+import unicodedata
+import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
@@ -9,6 +11,27 @@ from models.auditoria import Auditoria
 from models.configuracion import Configuracion
 from models.viaje import Viaje
 from models.vehiculo import ViajeVehiculo
+
+
+# ── Código legible de viaje ────────────────────────────────────────────────────
+
+def _normalizar_prefijo(destino: str) -> str:
+    """Extrae las primeras 3 letras normalizadas (sin tildes) del destino."""
+    s = unicodedata.normalize("NFD", destino)
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
+    s = "".join(c for c in s if c.isalpha())
+    return s.upper()[:3] if s else "VIA"
+
+
+def generar_codigo_viaje(destino: str, empresa_id: uuid.UUID, db: Session) -> str:
+    """Genera un código único como CAL1, BOG3, MED12."""
+    prefijo = _normalizar_prefijo(destino)
+    count = (
+        db.query(Viaje)
+        .filter(Viaje.empresa_id == empresa_id, Viaje.codigo.like(f"{prefijo}%"))
+        .count()
+    )
+    return f"{prefijo}{count + 1}"
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -35,11 +58,13 @@ def viaje_a_dict(viaje: Viaje) -> dict[str, Any]:
     """Snapshot del viaje para auditoría (solo campos de la tabla viajes)."""
     return {
         "id": str(viaje.id),
+        "codigo": viaje.codigo,
         "origen": viaje.origen,
         "destino": viaje.destino,
         "estado": viaje.estado,
         "placa_grua": viaje.placa_grua,
         "marca_grua": viaje.marca_grua,
+        "conductor_id": str(viaje.conductor_id) if viaje.conductor_id else None,
         "monto_total": str(viaje.monto_total) if viaje.monto_total is not None else None,
         "metodo_pago": viaje.metodo_pago,
         "foto_recibo_url": viaje.foto_recibo_url,

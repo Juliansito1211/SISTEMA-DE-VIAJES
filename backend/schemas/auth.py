@@ -24,6 +24,7 @@ class PermisosMixin(BaseModel):
     perm_editar_vehiculo: bool
     perm_crear_usuarios: bool
     perm_gestionar_roles: bool
+    perm_gestionar_gruas: bool
     perm_ver_auditoria: bool
     perm_configuracion: bool
 

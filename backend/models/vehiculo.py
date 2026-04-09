@@ -45,10 +45,14 @@ class ViajeVehiculo(Base):
     )
     monto: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), nullable=True)
     orden: Mapped[int] = mapped_column(Integer, nullable=False)
+    observacion: Mapped[str | None] = mapped_column(String, nullable=True)
     agregado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     # Relaciones
     viaje: Mapped["Viaje"] = relationship("Viaje", back_populates="vehiculos")
     vehiculo: Mapped["VehiculoCatalogo"] = relationship(
         "VehiculoCatalogo", back_populates="viaje_vehiculos"
+    )
+    fotos: Mapped[list["FotoVehiculo"]] = relationship(
+        "FotoVehiculo", back_populates="viaje_vehiculo", cascade="all, delete-orphan"
     )

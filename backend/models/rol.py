@@ -32,6 +32,9 @@ class Rol(Base):
     perm_crear_usuarios: Mapped[bool] = mapped_column(Boolean, default=False)
     perm_gestionar_roles: Mapped[bool] = mapped_column(Boolean, default=False)
 
+    # Módulo: Grúas
+    perm_gestionar_gruas: Mapped[bool] = mapped_column(Boolean, default=False)
+
     # Módulo: Sistema
     perm_ver_auditoria: Mapped[bool] = mapped_column(Boolean, default=False)
     perm_configuracion: Mapped[bool] = mapped_column(Boolean, default=False)

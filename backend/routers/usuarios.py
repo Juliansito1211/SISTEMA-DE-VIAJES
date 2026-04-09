@@ -23,6 +23,22 @@ def _get_usuario_empresa(usuario_id: str, empresa_id: str, db: Session) -> Usuar
     return u
 
 
+# ── GET /usuarios/activos — para selects (perm_crear_viaje) ───────────────────
+
+@router.get("/activos", response_model=list[UsuarioOut])
+def listar_usuarios_activos(
+    user: Usuario = Depends(require("perm_crear_viaje")),
+    db: Session = Depends(get_db),
+):
+    """Usuarios activos de la empresa — usado para asignar conductor al programar viaje."""
+    return (
+        db.query(Usuario)
+        .filter(Usuario.empresa_id == user.empresa_id, Usuario.activo.is_(True))
+        .order_by(Usuario.nombre)
+        .all()
+    )
+
+
 # ── GET /usuarios ──────────────────────────────────────────────────────────────
 
 @router.get("", response_model=list[UsuarioOut])

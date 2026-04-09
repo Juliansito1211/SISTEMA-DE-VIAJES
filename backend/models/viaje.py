@@ -10,7 +10,7 @@ from database import Base
 class Viaje(Base):
     __tablename__ = "viajes"
     __table_args__ = (
-        CheckConstraint("estado IN ('NO_INICIADO', 'EN_CURSO', 'FINALIZADO')", name="ck_viajes_estado"),
+        CheckConstraint("estado IN ('NO_INICIADO', 'PROGRAMADO', 'PENDIENTE_ACEPTAR', 'EN_CURSO', 'FINALIZADO', 'CANCELADO')", name="ck_viajes_estado"),
         CheckConstraint(
             "metodo_pago IN ('EFECTIVO','TRANSFERENCIA','TARJETA','OTRO')",
             name="ck_viajes_metodo_pago",
@@ -29,6 +29,12 @@ class Viaje(Base):
     iniciado_por: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True
     )
+    conductor_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("usuarios.id"), nullable=True
+    )
+
+    codigo: Mapped[str | None] = mapped_column(String(20), nullable=True, unique=True)
+    observacion_grua: Mapped[str | None] = mapped_column(String, nullable=True)
 
     placa_grua: Mapped[str | None] = mapped_column(String(20), nullable=True)
     marca_grua: Mapped[str | None] = mapped_column(String(80), nullable=True)
@@ -44,6 +50,7 @@ class Viaje(Base):
 
     # Timestamps — siempre asignados por el servidor
     creado_en: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    programado_para: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     iniciado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     finalizado_en: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 
@@ -55,9 +62,15 @@ class Viaje(Base):
     iniciador: Mapped["Usuario | None"] = relationship(
         "Usuario", back_populates="viajes_iniciados", foreign_keys=[iniciado_por]
     )
+    conductor: Mapped["Usuario | None"] = relationship(
+        "Usuario", foreign_keys=[conductor_id]
+    )
     vehiculos: Mapped[list["ViajeVehiculo"]] = relationship(
         "ViajeVehiculo", back_populates="viaje", cascade="all, delete-orphan"
     )
     auditorias: Mapped[list["Auditoria"]] = relationship(
         "Auditoria", back_populates="viaje"
+    )
+    fotos_grua: Mapped[list["FotoGrua"]] = relationship(
+        "FotoGrua", back_populates="viaje", cascade="all, delete-orphan"
     )
