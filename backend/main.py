@@ -19,6 +19,7 @@ from routers import configuracion as configuracion_router
 from routers import solicitudes as solicitudes_router
 from routers import fotos as fotos_router
 from routers import gruas as gruas_router
+from routers import tanqueos as tanqueos_router
 
 UPLOADS_DIR = pathlib.Path("/app/uploads")
 UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
@@ -83,6 +84,7 @@ app.include_router(configuracion_router.router)
 app.include_router(solicitudes_router.router)
 app.include_router(fotos_router.router)
 app.include_router(gruas_router.router)
+app.include_router(tanqueos_router.router)
 
 app.mount("/uploads", StaticFiles(directory=str(UPLOADS_DIR)), name="uploads")
 

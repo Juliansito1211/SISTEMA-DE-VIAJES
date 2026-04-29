@@ -12,6 +12,9 @@ import FotoUploader from '../components/FotoUploader'
 import Timeline from '../components/Timeline'
 import { formatMonto } from '../utils/formato'
 import { usuariosApi } from '../api/usuarios'
+import { tanqueosApi } from '../api/tanqueos'
+import AppHeader from '../components/AppHeader'
+import Watermark from '../components/Watermark'
 
 function formatFecha(ts) {
   if (!ts) return '—'
@@ -48,6 +51,14 @@ export default function DetalleViaje() {
   // Modal fotos de vehículo
   const [vehiculoParaFotos, setVehiculoParaFotos] = useState(null)
 
+  // Tanqueos
+  const [tanqueos, setTanqueos] = useState([])
+  const [showModalTanqueo, setShowModalTanqueo] = useState(false)
+  const [tanqueoForm, setTanqueoForm] = useState({ monto: '', observacion: '', foto: null })
+  const [tanqueoFotoPreview, setTanqueoFotoPreview] = useState(null)
+  const [guardandoTanqueo, setGuardandoTanqueo] = useState(false)
+  const [errorTanqueo, setErrorTanqueo] = useState('')
+
   // Solicitar reapertura
   const [showSolicitar, setShowSolicitar] = useState(false)
   const [notaSolicitud, setNotaSolicitud] = useState('')
@@ -83,9 +94,14 @@ export default function DetalleViaje() {
     }
   }
 
+  const cargarTanqueos = () => {
+    tanqueosApi.listar(id).then(setTanqueos).catch(() => {})
+  }
+
   useEffect(() => {
     cargar()
     cargarAuditoria()
+    cargarTanqueos()
     if (user?.perm_ver_todos_viajes) {
       usuariosApi.activos().then(setUsuarios).catch(() => {})
     }
@@ -146,6 +162,44 @@ export default function DetalleViaje() {
     }
   }
 
+  const handleGuardarTanqueo = async () => {
+    setErrorTanqueo('')
+    if (!tanqueoForm.monto || parseFloat(tanqueoForm.monto) <= 0) {
+      setErrorTanqueo('Ingresa un monto válido')
+      return
+    }
+    if (!tanqueoForm.foto) {
+      setErrorTanqueo('La foto del recibo es obligatoria')
+      return
+    }
+    setGuardandoTanqueo(true)
+    try {
+      await tanqueosApi.registrar(id, {
+        monto: parseFloat(tanqueoForm.monto),
+        observacion: tanqueoForm.observacion.trim() || null,
+        foto: tanqueoForm.foto,
+      })
+      setShowModalTanqueo(false)
+      setTanqueoForm({ monto: '', observacion: '', foto: null })
+      setTanqueoFotoPreview(null)
+      cargarTanqueos()
+    } catch (err) {
+      setErrorTanqueo(err.response?.data?.detail || 'Error al registrar')
+    } finally {
+      setGuardandoTanqueo(false)
+    }
+  }
+
+  const handleEliminarTanqueo = async (tanqueoId) => {
+    if (!window.confirm('¿Eliminar este registro de tanqueo?')) return
+    try {
+      await tanqueosApi.eliminar(id, tanqueoId)
+      cargarTanqueos()
+    } catch (err) {
+      alert(err.response?.data?.detail || 'Error al eliminar')
+    }
+  }
+
   const handleEliminarVehiculo = async (vid) => {
     if (!window.confirm('¿Eliminar este vehículo del viaje?')) return
     try {
@@ -163,10 +217,9 @@ export default function DetalleViaje() {
   )
 
   if (error || !viaje) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="page-header">
-        <button onClick={() => navigate('/viajes')} className="text-blue-600 font-medium text-sm">← Volver</button>
-      </header>
+    <div className="min-h-screen bg-slate-50 relative flex flex-col">
+      <Watermark />
+      <AppHeader title="Detalle de viaje" back={() => navigate('/viajes')} />
       <p className="text-center text-red-600 py-16">{error || 'Viaje no encontrado'}</p>
     </div>
   )
@@ -180,21 +233,22 @@ export default function DetalleViaje() {
   const esConductorAsignado = viaje.conductor_id && String(viaje.conductor_id) === String(user?.id)
   const total = vehiculos.reduce((s, v) => s + (v.monto ? parseFloat(v.monto) : 0), 0)
 
+  const headerTitle = `${viaje.origen} → ${viaje.destino}`
+  const headerRight = (
+    <div className="flex items-center gap-2">
+      {viaje.codigo && (
+        <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
+          {viaje.codigo}
+        </span>
+      )}
+      <BadgeEstado estado={viaje.estado} />
+    </div>
+  )
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="page-header">
-        <button onClick={() => navigate('/viajes')} className="text-blue-600 font-medium text-sm shrink-0">← Volver</button>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-bold text-gray-900 truncate">{viaje.origen} → {viaje.destino}</h1>
-          {viaje.codigo && (
-            <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
-              {viaje.codigo}
-            </span>
-          )}
-        </div>
-        <BadgeEstado estado={viaje.estado} />
-      </header>
+    <div className="min-h-screen bg-slate-50 relative">
+      <Watermark />
+      <AppHeader title={headerTitle} back={() => navigate('/viajes')} right={headerRight} />
 
       <main className="px-4 py-4 max-w-lg mx-auto pb-6 space-y-4">
 
@@ -223,6 +277,16 @@ export default function DetalleViaje() {
 
         {/* Info del viaje */}
         <div className="card space-y-3">
+          <div className="flex justify-between items-center gap-4">
+            <span className="text-sm text-gray-500 shrink-0">Tipo de viaje</span>
+            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+              viaje.tipo_viaje === 'URBANO'
+                ? 'bg-teal-100 text-teal-800'
+                : 'bg-purple-100 text-purple-800'
+            }`}>
+              {viaje.tipo_viaje === 'URBANO' ? '🏙️ Urbano' : '🗺️ Nacional'}
+            </span>
+          </div>
           <InfoRow label="Creado" value={formatFecha(viaje.creado_en)} />
           {viaje.programado_para && (
             <div className="flex justify-between items-center gap-4">
@@ -257,6 +321,68 @@ export default function DetalleViaje() {
           <div className="card">
             <h2 className="font-semibold text-gray-900 mb-3">Fotos de la grúa</h2>
             <FotoUploader tipo="grua" entidadId={id} editable={enCurso && (!!user?.perm_iniciar_viaje || esConductorAsignado)} />
+          </div>
+        )}
+
+        {/* ⛽ Tanqueos */}
+        {(enCurso || pendienteAceptar || finalizado) && (
+          <div className="card" id="tanqueos">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="font-semibold text-gray-900">⛽ Tanqueos</h2>
+                {tanqueos.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Total: <span className="font-semibold text-gray-700">
+                      {formatMonto(tanqueos.reduce((s, t) => s + t.monto, 0))}
+                    </span>
+                  </p>
+                )}
+              </div>
+              {(enCurso || pendienteAceptar) && (
+                <button
+                  onClick={() => { setTanqueoForm({ monto: '', observacion: '', foto: null }); setTanqueoFotoPreview(null); setErrorTanqueo(''); setShowModalTanqueo(true) }}
+                  className="text-sm text-blue-600 font-medium"
+                >
+                  + Registrar
+                </button>
+              )}
+            </div>
+
+            {tanqueos.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-3">Sin registros de tanqueo</p>
+            ) : (
+              <div className="space-y-3">
+                {tanqueos.map((t) => (
+                  <div key={t.id} className="flex gap-3 items-start border-b border-gray-100 last:border-0 pb-3 last:pb-0">
+                    {/* Foto recibo */}
+                    {t.foto_url ? (
+                      <a href={`http://localhost:8000${t.foto_url}`} target="_blank" rel="noreferrer">
+                        <img
+                          src={`http://localhost:8000${t.foto_url}`}
+                          alt="recibo"
+                          className="w-14 h-14 rounded-xl object-cover shrink-0 border border-gray-200"
+                        />
+                      </a>
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 text-2xl">⛽</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900">{formatMonto(t.monto)}</p>
+                      {t.observacion && <p className="text-xs text-gray-500 mt-0.5 italic">"{t.observacion}"</p>}
+                      <p className="text-xs text-gray-400 mt-0.5">{t.registrado_por_nombre} · {formatFecha(t.creado_en)}</p>
+                    </div>
+                    {(enCurso || pendienteAceptar) && user?.perm_ver_todos_viajes && (
+                      <button
+                        onClick={() => handleEliminarTanqueo(t.id)}
+                        className="text-xs text-red-400 hover:text-red-600 shrink-0 mt-1"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -504,6 +630,92 @@ export default function DetalleViaje() {
               <button onClick={handleSolicitar} disabled={enviandoSolicitud} className="btn-primary">
                 {enviandoSolicitud ? 'Enviando...' : 'Enviar solicitud'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal registrar tanqueo */}
+      {showModalTanqueo && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="text-xl font-bold text-gray-900">⛽ Registrar tanqueo</h2>
+                <button onClick={() => setShowModalTanqueo(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="label">Monto ($) *</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={tanqueoForm.monto}
+                    onChange={(e) => setTanqueoForm((f) => ({ ...f, monto: e.target.value }))}
+                    className="input"
+                    placeholder="Ej: 150000"
+                    autoFocus
+                  />
+                </div>
+
+                <div>
+                  <label className="label">Observación</label>
+                  <input
+                    type="text"
+                    value={tanqueoForm.observacion}
+                    onChange={(e) => setTanqueoForm((f) => ({ ...f, observacion: e.target.value }))}
+                    className="input"
+                    placeholder="Ej: Estación El Paso, 40 litros..."
+                  />
+                </div>
+
+                {/* Foto del recibo */}
+                <div>
+                  <label className="label">Foto del recibo *</label>
+                  {tanqueoFotoPreview ? (
+                    <div className="relative inline-block">
+                      <img src={tanqueoFotoPreview} alt="preview" className="w-32 h-32 object-cover rounded-xl border border-gray-200" />
+                      <button
+                        onClick={() => { setTanqueoForm((f) => ({ ...f, foto: null })); setTanqueoFotoPreview(null) }}
+                        className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs flex items-center justify-center"
+                      >✕</button>
+                    </div>
+                  ) : (
+                    <label className="flex items-center gap-2 border-2 border-dashed border-gray-300 rounded-xl px-4 py-3 cursor-pointer hover:border-blue-400 transition-colors">
+                      <span className="text-2xl">📷</span>
+                      <span className="text-sm text-gray-500">Toca para agregar foto</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0]
+                          if (file) {
+                            setTanqueoForm((f) => ({ ...f, foto: file }))
+                            setTanqueoFotoPreview(URL.createObjectURL(file))
+                          }
+                        }}
+                      />
+                    </label>
+                  )}
+                </div>
+
+                {errorTanqueo && (
+                  <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorTanqueo}</p>
+                )}
+
+                <div className="flex gap-3 pt-1">
+                  <button type="button" onClick={() => setShowModalTanqueo(false)} className="btn-secondary">
+                    Cancelar
+                  </button>
+                  <button onClick={handleGuardarTanqueo} disabled={guardandoTanqueo} className="btn-primary">
+                    {guardandoTanqueo ? 'Guardando...' : 'Guardar tanqueo'}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

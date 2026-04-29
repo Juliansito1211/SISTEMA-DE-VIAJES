@@ -93,6 +93,8 @@ CREATE TABLE viajes (
     marca_grua    VARCHAR(80),
 
     -- Datos del viaje — obligatorios al crear
+    tipo_viaje    VARCHAR(10) DEFAULT 'NACIONAL'
+                  CHECK (tipo_viaje IN ('URBANO', 'NACIONAL')),
     origen        VARCHAR(200) NOT NULL,
     destino       VARCHAR(200) NOT NULL,
 
@@ -226,6 +228,21 @@ CREATE TABLE fotos_grua (
     filename   TEXT NOT NULL,
     creado_en  TIMESTAMP DEFAULT NOW()
 );
+
+-- ─────────────────────────────────────────────
+-- 14. tanqueos
+-- ─────────────────────────────────────────────
+CREATE TABLE tanqueos (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    empresa_id     UUID NOT NULL REFERENCES empresas(id),
+    viaje_id       UUID NOT NULL REFERENCES viajes(id) ON DELETE CASCADE,
+    registrado_por UUID NOT NULL REFERENCES usuarios(id),
+    monto          DECIMAL(12,2) NOT NULL,
+    foto_filename  TEXT,
+    observacion    TEXT,
+    creado_en      TIMESTAMP DEFAULT NOW() NOT NULL
+);
+CREATE INDEX idx_tanqueos_viaje ON tanqueos (viaje_id);
 
 -- ─────────────────────────────────────────────
 -- Índices de rendimiento

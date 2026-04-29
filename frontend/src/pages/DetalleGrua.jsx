@@ -3,6 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { gruasApi, API_BASE_URL } from '../api/gruas'
 import client from '../api/client'
+import MARCAS from '../data/marcasCarros'
+import COLORES from '../data/coloresCarros'
+import { normalizarPlaca, placaValida } from '../utils/formato'
+import AppHeader from '../components/AppHeader'
+import Watermark from '../components/Watermark'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -51,6 +56,57 @@ function InfoDoc({ label, inicio, vence }) {
 
 // ── Página nueva (sin ID) ─────────────────────────────────────────────────────
 
+// ── Subcomponente reutilizable: input de marca con autocomplete ───────────────
+function MarcaInput({ value, onChange }) {
+  const [sugerencias, setSugerencias] = useState([])
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    const fn = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    document.addEventListener('mousedown', fn)
+    return () => document.removeEventListener('mousedown', fn)
+  }, [])
+
+  const handleInput = (e) => {
+    const val = e.target.value
+    onChange(val)
+    if (val.length >= 1) {
+      setSugerencias(MARCAS.filter((m) => m.toLowerCase().includes(val.toLowerCase())).slice(0, 8))
+      setOpen(true)
+    } else {
+      setSugerencias([])
+      setOpen(false)
+    }
+  }
+
+  const seleccionar = (m) => { onChange(m); setSugerencias([]); setOpen(false) }
+
+  return (
+    <div className="relative" ref={ref}>
+      <input
+        value={value}
+        onChange={handleInput}
+        onFocus={() => { if (value.length >= 1) setOpen(true) }}
+        className="input"
+        placeholder="Buscar marca..."
+        autoComplete="off"
+      />
+      {open && sugerencias.length > 0 && (
+        <ul className="absolute z-20 w-full bg-white border border-gray-200 rounded-xl mt-1 shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+          {sugerencias.map((m) => (
+            <li key={m} onMouseDown={() => seleccionar(m)}
+              className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer text-sm border-b last:border-0">
+              {m}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+// ── Página nueva grúa ────────────────────────────────────────────────────────
 export function NuevaGrua() {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -66,12 +122,20 @@ export function NuevaGrua() {
     return null
   }
 
-  const handleChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    if (name === 'placa') {
+      setForm((f) => ({ ...f, placa: normalizarPlaca(value) }))
+    } else {
+      setForm((f) => ({ ...f, [name]: value }))
+    }
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
     if (!form.placa.trim()) { setError('La placa es obligatoria'); return }
+    if (!placaValida(form.placa)) { setError('La placa debe tener exactamente 6 caracteres (ej: DQN228)'); return }
     if (!form.marca.trim()) { setError('La marca es obligatoria'); return }
     setLoading(true)
     try {
@@ -79,7 +143,7 @@ export function NuevaGrua() {
         placa: form.placa.trim().toUpperCase(),
         marca: form.marca.trim(),
         modelo: form.modelo.trim() || null,
-        color: form.color.trim() || null,
+        color: form.color || null,
         tecno_inicio: form.tecno_inicio || null,
         tecno_vence: form.tecno_vence || null,
         soat_inicio: form.soat_inicio || null,
@@ -94,27 +158,28 @@ export function NuevaGrua() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="page-header">
-        <button onClick={() => navigate('/gruas')} className="text-blue-600 font-medium text-sm shrink-0">
-          ← Volver
-        </button>
-        <h1 className="font-bold text-gray-900 flex-1">Nueva grúa</h1>
-      </header>
+    <div className="min-h-screen bg-slate-50 relative">
+      <Watermark />
+      <AppHeader title="Nueva grúa" back={() => navigate('/gruas')} />
 
       <main className="px-4 py-4 max-w-lg mx-auto pb-8 space-y-4">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="card space-y-4">
             <h2 className="font-semibold text-gray-900">Datos del vehículo</h2>
             <div>
-              <label className="label">Placa *</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="label mb-0">Placa *</label>
+                <span className={`text-xs font-mono font-bold ${form.placa.length === 6 ? 'text-green-600' : 'text-gray-400'}`}>
+                  {form.placa.length}/6
+                </span>
+              </div>
               <input name="placa" value={form.placa} onChange={handleChange}
-                className="input uppercase" placeholder="Ej: ABC-123" required />
+                className={`input uppercase font-mono tracking-widest text-lg ${form.placa.length > 0 && form.placa.length < 6 ? 'border-orange-300' : ''}`}
+                placeholder="DQN228" maxLength={6} />
             </div>
             <div>
               <label className="label">Marca *</label>
-              <input name="marca" value={form.marca} onChange={handleChange}
-                className="input" placeholder="Ej: Ford, Chevrolet..." required />
+              <MarcaInput value={form.marca} onChange={(v) => setForm((f) => ({ ...f, marca: v }))} />
             </div>
             <div>
               <label className="label">Modelo</label>
@@ -123,8 +188,10 @@ export function NuevaGrua() {
             </div>
             <div>
               <label className="label">Color</label>
-              <input name="color" value={form.color} onChange={handleChange}
-                className="input" placeholder="Ej: Blanco" />
+              <select name="color" value={form.color} onChange={handleChange} className="input">
+                <option value="">Seleccionar...</option>
+                {COLORES.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
           </div>
 
@@ -232,11 +299,19 @@ export default function DetalleGrua() {
     }
   }, [user])
 
-  const handleChange = (e) => setForm((f) => ({ ...f, [e.target.name]: e.target.value }))
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    if (name === 'placa') {
+      setForm((f) => ({ ...f, placa: normalizarPlaca(value) }))
+    } else {
+      setForm((f) => ({ ...f, [name]: value }))
+    }
+  }
 
   const handleGuardar = async () => {
     setErrorForm('')
     if (!form.placa.trim()) { setErrorForm('La placa es obligatoria'); return }
+    if (!placaValida(form.placa)) { setErrorForm('La placa debe tener exactamente 6 caracteres (ej: DQN228)'); return }
     if (!form.marca.trim()) { setErrorForm('La marca es obligatoria'); return }
     setGuardando(true)
     try {
@@ -244,7 +319,7 @@ export default function DetalleGrua() {
         placa: form.placa.trim().toUpperCase(),
         marca: form.marca.trim(),
         modelo: form.modelo.trim() || null,
-        color: form.color.trim() || null,
+        color: form.color || null,
         tecno_inicio: form.tecno_inicio || null,
         tecno_vence: form.tecno_vence || null,
         soat_inicio: form.soat_inicio || null,
@@ -324,32 +399,31 @@ export default function DetalleGrua() {
   )
 
   if (error || !grua) return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="page-header">
-        <button onClick={() => navigate('/gruas')} className="text-blue-600 font-medium text-sm">← Volver</button>
-      </header>
+    <div className="min-h-screen bg-slate-50 relative flex flex-col">
+      <Watermark />
+      <AppHeader title="Detalle de grúa" back={() => navigate('/gruas')} />
       <p className="text-center text-red-600 py-16">{error || 'Grúa no encontrada'}</p>
     </div>
   )
 
   const esAdmin = !!user?.perm_gestionar_gruas
 
+  const gruaHeaderRight = (
+    <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+      grua.activa ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+    }`}>
+      {grua.activa ? 'Activa' : 'Inactiva'}
+    </span>
+  )
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="page-header">
-        <button onClick={() => navigate('/gruas')} className="text-blue-600 font-medium text-sm shrink-0">
-          ← Volver
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="font-bold text-gray-900 font-mono">{grua.placa}</h1>
-          <p className="text-xs text-gray-500">{grua.marca}{grua.modelo ? ` · ${grua.modelo}` : ''}</p>
-        </div>
-        <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-          grua.activa ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-        }`}>
-          {grua.activa ? 'Activa' : 'Inactiva'}
-        </span>
-      </header>
+    <div className="min-h-screen bg-slate-50 relative">
+      <Watermark />
+      <AppHeader
+        title={grua.placa}
+        back={() => navigate('/gruas')}
+        right={gruaHeaderRight}
+      />
 
       <main className="px-4 py-4 max-w-lg mx-auto pb-8 space-y-4">
 
@@ -435,13 +509,19 @@ export default function DetalleGrua() {
           {editando ? (
             <div className="space-y-3">
               <div>
-                <label className="label">Placa *</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label mb-0">Placa *</label>
+                  <span className={`text-xs font-mono font-bold ${form.placa.length === 6 ? 'text-green-600' : 'text-gray-400'}`}>
+                    {form.placa.length}/6
+                  </span>
+                </div>
                 <input name="placa" value={form.placa} onChange={handleChange}
-                  className="input uppercase" />
+                  className={`input uppercase font-mono tracking-widest text-lg ${form.placa.length > 0 && form.placa.length < 6 ? 'border-orange-300' : ''}`}
+                  placeholder="DQN228" maxLength={6} />
               </div>
               <div>
                 <label className="label">Marca *</label>
-                <input name="marca" value={form.marca} onChange={handleChange} className="input" />
+                <MarcaInput value={form.marca} onChange={(v) => setForm((f) => ({ ...f, marca: v }))} />
               </div>
               <div>
                 <label className="label">Modelo</label>
@@ -450,8 +530,10 @@ export default function DetalleGrua() {
               </div>
               <div>
                 <label className="label">Color</label>
-                <input name="color" value={form.color} onChange={handleChange}
-                  className="input" placeholder="Ej: Blanco" />
+                <select name="color" value={form.color} onChange={handleChange} className="input">
+                  <option value="">Seleccionar...</option>
+                  {COLORES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
               </div>
               {errorForm && (
                 <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{errorForm}</p>

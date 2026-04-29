@@ -8,6 +8,7 @@ from schemas.vehiculo import ViajeVehiculoOut
 class ViajeCreate(BaseModel):
     origen: str
     destino: str
+    tipo_viaje: str = "NACIONAL"
     programado_para: datetime | None = None
     conductor_id: uuid.UUID | None = None
 
@@ -29,6 +30,7 @@ class ViajeOut(BaseModel):
     observacion_grua: str | None
     placa_grua: str | None
     marca_grua: str | None
+    tipo_viaje: str = "NACIONAL"
     origen: str
     destino: str
     estado: str
@@ -46,6 +48,7 @@ class ViajeOut(BaseModel):
 class ViajeUpdate(BaseModel):
     origen: str | None = None
     destino: str | None = None
+    tipo_viaje: str | None = None
 
 
 class ViajeFinalizar(BaseModel):

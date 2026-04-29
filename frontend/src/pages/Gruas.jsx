@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { gruasApi, API_BASE_URL } from '../api/gruas'
+import BottomNav from '../components/BottomNav'
+import AppHeader from '../components/AppHeader'
+import Watermark from '../components/Watermark'
 
 function diasParaVencer(fecha) {
   if (!fecha) return null
@@ -48,24 +51,21 @@ export default function Gruas() {
 
   useEffect(() => { cargar() }, [])
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="page-header">
-        <button onClick={() => navigate('/viajes')} className="text-blue-600 font-medium text-sm shrink-0">
-          ← Volver
-        </button>
-        <h1 className="font-bold text-gray-900 text-lg flex-1">Grúas</h1>
-        {user?.perm_gestionar_gruas && (
-          <button
-            onClick={() => navigate('/gruas/nueva')}
-            className="text-sm text-blue-600 font-medium"
-          >
-            + Nueva
-          </button>
-        )}
-      </header>
+  const headerRight = user?.perm_gestionar_gruas ? (
+    <button
+      onClick={() => navigate('/gruas/nueva')}
+      className="text-sm text-blue-600 font-semibold"
+    >
+      + Nueva
+    </button>
+  ) : null
 
-      <main className="px-4 py-4 max-w-lg mx-auto space-y-3">
+  return (
+    <div className="min-h-screen bg-slate-50 relative">
+      <Watermark />
+      <AppHeader title="Grúas" right={headerRight} />
+
+      <main className="px-4 py-4 max-w-lg mx-auto space-y-3 pb-24">
         {loading && (
           <div className="flex justify-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent" />
@@ -141,6 +141,7 @@ export default function Gruas() {
           </button>
         ))}
       </main>
+      <BottomNav />
     </div>
   )
 }

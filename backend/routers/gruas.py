@@ -1,4 +1,5 @@
 import pathlib
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
@@ -13,6 +14,15 @@ from schemas.grua import GruaAsignar, GruaCreate, GruaDesasignar, GruaOut, GruaU
 UPLOADS_DIR = pathlib.Path("/app/uploads")
 
 router = APIRouter(prefix="/gruas", tags=["gruas"])
+
+_PLACA_RE = re.compile(r'^[A-Z0-9]{6}$')
+
+def _validar_formato_placa(placa: str) -> None:
+    if not _PLACA_RE.match(placa.upper()):
+        raise HTTPException(
+            status_code=400,
+            detail="La placa debe tener exactamente 6 caracteres alfanuméricos sin espacios ni símbolos (ej: DQN228).",
+        )
 
 
 # ── Helper ─────────────────────────────────────────────────────────────────────
@@ -137,6 +147,7 @@ def crear_grua(
     placa = body.placa.strip().upper()
     if not placa:
         raise HTTPException(400, "La placa es obligatoria")
+    _validar_formato_placa(placa)
     if not body.marca.strip():
         raise HTTPException(400, "La marca es obligatoria")
 
@@ -179,6 +190,7 @@ def editar_grua(
         placa = body.placa.strip().upper()
         if not placa:
             raise HTTPException(400, "La placa es obligatoria")
+        _validar_formato_placa(placa)
         conflicto = db.query(Grua).filter(
             Grua.empresa_id == user.empresa_id,
             Grua.placa == placa,

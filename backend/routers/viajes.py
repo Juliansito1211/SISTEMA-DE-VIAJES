@@ -72,6 +72,7 @@ def _viaje_out(viaje: Viaje, conductor_nombre: str | None = None) -> ViajeOut:
         observacion_grua=viaje.observacion_grua,
         placa_grua=viaje.placa_grua,
         marca_grua=viaje.marca_grua,
+        tipo_viaje=viaje.tipo_viaje,
         origen=viaje.origen,
         destino=viaje.destino,
         estado=viaje.estado,
@@ -238,9 +239,12 @@ def crear_viaje(
 
     codigo = generar_codigo_viaje(body.destino.strip(), user.empresa_id, db)
 
+    tipo_viaje = body.tipo_viaje if body.tipo_viaje in ("URBANO", "NACIONAL") else "NACIONAL"
+
     viaje = Viaje(
         empresa_id=user.empresa_id,
         creado_por=user.id,
+        tipo_viaje=tipo_viaje,
         origen=body.origen.strip(),
         destino=body.destino.strip(),
         codigo=codigo,

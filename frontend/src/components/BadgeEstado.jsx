@@ -1,23 +1,19 @@
-export default function BadgeEstado({ estado }) {
-  const clases = {
-    NO_INICIADO:        'badge-no-iniciado',
-    PROGRAMADO:         'bg-indigo-100 text-indigo-800 text-xs font-medium px-2 py-0.5 rounded-full',
-    PENDIENTE_ACEPTAR:  'bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-0.5 rounded-full',
-    EN_CURSO:           'badge-en-curso',
-    FINALIZADO:         'badge-finalizado',
-    CANCELADO:          'bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full',
-  }
-  const etiquetas = {
-    NO_INICIADO:       'No iniciado',
-    PROGRAMADO:        '📅 Programado',
-    PENDIENTE_ACEPTAR: 'Pendiente aceptar',
-    EN_CURSO:          'En curso',
-    FINALIZADO:        'Finalizado',
-    CANCELADO:         'Cancelado',
-  }
+const CONFIG = {
+  NO_INICIADO:       { label: 'No iniciado',       icon: '🕐', cls: 'bg-amber-100   text-amber-800'   },
+  PROGRAMADO:        { label: 'Programado',         icon: '📅', cls: 'bg-indigo-100  text-indigo-800'  },
+  PENDIENTE_ACEPTAR: { label: 'Pendiente aceptar',  icon: '⏳', cls: 'bg-orange-100  text-orange-800'  },
+  EN_CURSO:          { label: 'En curso',            icon: '🟢', cls: 'bg-emerald-100 text-emerald-800' },
+  FINALIZADO:        { label: 'Finalizado',          icon: '✅', cls: 'bg-slate-100   text-slate-600'   },
+  CANCELADO:         { label: 'Cancelado',           icon: '❌', cls: 'bg-red-50      text-red-500'     },
+}
+
+export default function BadgeEstado({ estado, size = 'sm' }) {
+  const c = CONFIG[estado] || { label: estado, icon: '•', cls: 'bg-gray-100 text-gray-600' }
+  const pad = size === 'lg' ? 'px-3.5 py-1.5 text-sm' : 'px-2.5 py-1 text-xs'
   return (
-    <span className={clases[estado] || 'badge-no-iniciado'}>
-      {etiquetas[estado] || estado}
+    <span className={`inline-flex items-center gap-1 rounded-full font-bold shrink-0 ${pad} ${c.cls}`}>
+      <span>{c.icon}</span>
+      {c.label}
     </span>
   )
 }

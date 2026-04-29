@@ -1,9 +1,10 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 
 from database import get_db
 from dependencies import get_current_user
+from models.empresa import Empresa
 from models.usuario import Usuario
 from schemas.auth import LoginRequest, Token, UsuarioMe
 from services.auth import create_access_token, verify_password
@@ -44,11 +45,13 @@ def logout():
 
 
 @router.get("/me", response_model=UsuarioMe)
-def me(user: Usuario = Depends(get_current_user)):
+def me(user: Usuario = Depends(get_current_user), db: Session = Depends(get_db)):
     rol = user.rol
+    empresa = db.query(Empresa).filter(Empresa.id == user.empresa_id).first()
     return UsuarioMe(
         id=user.id,
         empresa_id=user.empresa_id,
+        empresa_nombre=empresa.nombre if empresa else "Mi Empresa",
         nombre=user.nombre,
         email=user.email,
         rol_nombre=rol.nombre,

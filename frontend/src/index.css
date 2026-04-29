@@ -4,49 +4,58 @@
 
 @layer base {
   html { -webkit-tap-highlight-color: transparent; }
-  body { @apply bg-gray-50 text-gray-900; }
+  body { @apply bg-slate-50 text-gray-900; }
 }
 
 @layer components {
+
+  /* ── Botones ───────────────────────────────────────────── */
   .btn-primary {
-    @apply w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-xl
-           active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed
-           transition-colors;
+    @apply w-full text-white font-bold py-3.5 px-4 rounded-2xl
+           active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed
+           transition-all duration-150 shadow-md shadow-blue-200
+           bg-gradient-to-r from-blue-600 to-blue-500;
   }
   .btn-secondary {
-    @apply w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-xl
-           border border-blue-600 active:bg-blue-50 disabled:opacity-50
-           transition-colors;
+    @apply w-full bg-white text-blue-600 font-bold py-3.5 px-4 rounded-2xl
+           border-2 border-blue-500 active:bg-blue-50 disabled:opacity-50
+           transition-all duration-150;
   }
   .btn-danger {
-    @apply w-full bg-red-600 text-white font-semibold py-3 px-4 rounded-xl
-           active:bg-red-700 disabled:opacity-50 transition-colors;
+    @apply w-full bg-gradient-to-r from-red-600 to-red-500 text-white
+           font-bold py-3.5 px-4 rounded-2xl shadow-md shadow-red-200
+           active:scale-95 disabled:opacity-50 transition-all duration-150;
   }
+
+  /* ── Inputs ────────────────────────────────────────────── */
   .input {
-    @apply w-full border border-gray-300 rounded-xl px-4 py-3 text-base
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-           bg-white;
+    @apply w-full border-2 border-gray-200 rounded-2xl px-4 py-3 text-base
+           focus:outline-none focus:ring-0 focus:border-blue-500
+           bg-white transition-colors duration-150;
   }
   .label {
-    @apply block text-sm font-medium text-gray-700 mb-1;
+    @apply block text-sm font-semibold text-gray-600 mb-1.5;
   }
+
+  /* ── Cards ─────────────────────────────────────────────── */
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-4;
+    @apply bg-white rounded-3xl shadow-sm border border-gray-100 p-4;
   }
-  .badge-no-iniciado {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-yellow-100 text-yellow-800;
+  .card-trip {
+    @apply bg-white rounded-3xl border border-gray-100 p-4
+           transition-all duration-150 active:scale-[0.98]
+           shadow-sm hover:shadow-md;
   }
-  .badge-en-curso {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-green-100 text-green-800;
-  }
-  .badge-finalizado {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
-           bg-gray-200 text-gray-700;
-  }
+
+  /* ── Header de página ───────────────────────────────────── */
   .page-header {
-    @apply sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3
-           flex items-center gap-3;
+    @apply sticky top-0 z-10 bg-white/95 backdrop-blur border-b border-gray-100
+           px-4 py-3 flex items-center gap-3;
   }
+
+  /* ── Badges de estado ───────────────────────────────────── */
+  .badge { @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold; }
+  .badge-no-iniciado    { @apply badge bg-amber-100   text-amber-800; }
+  .badge-en-curso       { @apply badge bg-emerald-100 text-emerald-800; }
+  .badge-finalizado     { @apply badge bg-slate-100   text-slate-600; }
 }

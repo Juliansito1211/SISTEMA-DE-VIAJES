@@ -33,6 +33,7 @@ class UsuarioMe(PermisosMixin):
     """Respuesta de GET /auth/me — incluye datos del usuario y sus permisos aplanados."""
     id: uuid.UUID
     empresa_id: uuid.UUID
+    empresa_nombre: str
     nombre: str
     email: str
     rol_nombre: str

@@ -39,6 +39,7 @@ class Viaje(Base):
     placa_grua: Mapped[str | None] = mapped_column(String(20), nullable=True)
     marca_grua: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
+    tipo_viaje: Mapped[str] = mapped_column(String(10), default="NACIONAL")
     origen: Mapped[str] = mapped_column(String(200), nullable=False)
     destino: Mapped[str] = mapped_column(String(200), nullable=False)
 

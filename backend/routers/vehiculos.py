@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from database import get_db
 from dependencies import get_current_user, require
+from models.grua import Grua
 from models.usuario import Usuario
 from models.vehiculo import VehiculoCatalogo, ViajeVehiculo
 from models.viaje import Viaje as ViajeModel
@@ -26,10 +27,40 @@ from services.viajes import (
 ESTADOS_BLOQUEANTES = ["NO_INICIADO", "PROGRAMADO", "PENDIENTE_ACEPTAR", "EN_CURSO"]
 
 ESTADO_LABEL = {
-    "NO_INICIADO": "pendiente / programado",
+    "NO_INICIADO":       "pendiente / sin iniciar",
+    "PROGRAMADO":        "programado",
     "PENDIENTE_ACEPTAR": "pendiente de aceptar",
-    "EN_CURSO": "en curso",
+    "EN_CURSO":          "en curso",
 }
+
+
+import re
+
+_PLACA_RE = re.compile(r'^[A-Z0-9]{6}$')
+
+def _validar_formato_placa(placa: str) -> None:
+    """Lanza 400 si la placa no tiene exactamente 6 caracteres alfanuméricos."""
+    if not _PLACA_RE.match(placa.upper()):
+        raise HTTPException(
+            status_code=400,
+            detail="La placa debe tener exactamente 6 caracteres alfanuméricos sin espacios ni símbolos (ej: DQN228).",
+        )
+
+
+def _validar_no_es_grua(placa: str, empresa_id, db: Session) -> None:
+    """Lanza 409 si la placa corresponde a una grúa registrada en la empresa."""
+    grua = db.query(Grua).filter(
+        Grua.empresa_id == empresa_id,
+        Grua.placa == placa.upper(),
+    ).first()
+    if grua:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "placa_es_grua",
+                "mensaje": f"La placa {placa.upper()} pertenece a una grúa y no puede registrarse como vehículo transportado.",
+            },
+        )
 
 
 def _validar_vehiculo_libre(
@@ -39,8 +70,8 @@ def _validar_vehiculo_libre(
     empresa_id: uuid.UUID,
     db: Session,
 ) -> None:
-    """Lanza 400 si el vehículo ya está en otro viaje activo o pendiente."""
-    resultado = (
+    """Lanza 409 si el vehículo ya está en otro viaje activo o pendiente."""
+    viaje_conflicto = (
         db.query(ViajeModel)
         .join(ViajeVehiculo, ViajeVehiculo.viaje_id == ViajeModel.id)
         .filter(
@@ -51,14 +82,16 @@ def _validar_vehiculo_libre(
         )
         .first()
     )
-    if resultado:
-        label = ESTADO_LABEL.get(resultado.estado, resultado.estado)
+    if viaje_conflicto:
         raise HTTPException(
-            status_code=400,
-            detail=(
-                f"El vehículo {placa} ya está en otro viaje ({label}). "
-                f"No se puede agregar hasta que ese viaje finalice o se cancele."
-            ),
+            status_code=409,
+            detail={
+                "error": "vehiculo_en_viaje_activo",
+                "mensaje": "Este vehículo ya está en un viaje activo",
+                "viaje_id": str(viaje_conflicto.id),
+                "viaje_origen": viaje_conflicto.origen,
+                "viaje_destino": viaje_conflicto.destino,
+            },
         )
 
 
@@ -132,6 +165,11 @@ def agregar_vehiculo(
     if viaje.estado == "FINALIZADO":
         raise HTTPException(status_code=400, detail="No se pueden agregar vehículos a un viaje FINALIZADO")
 
+    # Validar formato de placa (6 alfanuméricos, sin símbolos)
+    _validar_formato_placa(body.placa.strip())
+    # Validar: la placa no puede ser de una grúa
+    _validar_no_es_grua(body.placa.strip(), user.empresa_id, db)
+
     # Buscar o crear en catálogo — silencioso, sin notificar
     vehiculo = get_or_create_vehiculo(
         placa=body.placa.strip(),
@@ -141,6 +179,23 @@ def agregar_vehiculo(
         modelo=body.modelo,
         color=body.color,
     )
+
+    # Validar: el vehículo no puede estar ya en ESTE mismo viaje
+    ya_en_viaje = db.query(ViajeVehiculo).filter(
+        ViajeVehiculo.viaje_id == viaje.id,
+        ViajeVehiculo.vehiculo_id == vehiculo.id,
+    ).first()
+    if ya_en_viaje:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "error": "vehiculo_duplicado",
+                "mensaje": f"El vehículo {vehiculo.placa} ya está agregado a este viaje.",
+                "viaje_id": str(viaje.id),
+                "viaje_origen": viaje.origen,
+                "viaje_destino": viaje.destino,
+            },
+        )
 
     # Validar: el vehículo no puede estar en otro viaje activo o pendiente
     _validar_vehiculo_libre(vehiculo.id, vehiculo.placa, viaje.id, user.empresa_id, db)
@@ -201,6 +256,9 @@ def editar_vehiculo(
             raise HTTPException(status_code=400, detail="Placa obligatoria")
         # Si cambia la placa, buscar o crear el nuevo vehículo en catálogo
         if body.placa.strip().upper() != vehiculo.placa:
+            # Validar formato y que no sea placa de grúa
+            _validar_formato_placa(body.placa.strip())
+            _validar_no_es_grua(body.placa.strip(), user.empresa_id, db)
             nuevo_vehiculo = get_or_create_vehiculo(
                 placa=body.placa.strip(),
                 empresa_id=str(user.empresa_id),

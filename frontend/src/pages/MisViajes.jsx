@@ -4,6 +4,9 @@ import { useAuth } from '../context/AuthContext'
 import { viajesApi } from '../api/viajes'
 import BadgeEstado from '../components/BadgeEstado'
 import Campana from '../components/Campana'
+import BottomNav from '../components/BottomNav'
+import AppHeader from '../components/AppHeader'
+import Watermark from '../components/Watermark'
 import { formatMonto } from '../utils/formato'
 
 function formatFecha(ts) {
@@ -95,108 +98,124 @@ export default function MisViajes() {
     }
   }
 
+  // Color de borde izquierdo por estado
+  const borderColor = {
+    NO_INICIADO:       'border-l-amber-400',
+    PROGRAMADO:        'border-l-indigo-400',
+    PENDIENTE_ACEPTAR: 'border-l-orange-400',
+    EN_CURSO:          'border-l-emerald-500',
+    FINALIZADO:        'border-l-slate-300',
+    CANCELADO:         'border-l-red-300',
+  }
+  const bgTint = {
+    EN_CURSO:          'bg-emerald-50/30',
+    PENDIENTE_ACEPTAR: 'bg-orange-50/30',
+    PROGRAMADO:        'bg-indigo-50/30',
+  }
+
+  const headerRight = (
+    <div className="flex items-center gap-2">
+      {user?.perm_reabrir_viaje && <Campana />}
+      <button
+        onClick={() => setShowBuscar(true)}
+        className={`relative w-10 h-10 flex items-center justify-center rounded-2xl transition-all ${
+          hayFiltros ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-slate-100 text-slate-600'
+        }`}
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+        </svg>
+        {hayFiltros && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white" />}
+      </button>
+    </div>
+  )
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-bold text-gray-900 text-lg">Mis Viajes</h1>
-          <p className="text-xs text-gray-500">{user?.nombre} · {user?.rol_nombre}</p>
-        </div>
-        <div className="flex items-center gap-3">
-          {user?.perm_gestionar_gruas && (
-            <button onClick={() => navigate('/gruas')} className="text-sm text-blue-600 font-medium">
-              Grúas
-            </button>
-          )}
-          {user?.perm_crear_usuarios && (
-            <button onClick={() => navigate('/usuarios')} className="text-sm text-blue-600 font-medium">
-              Usuarios
-            </button>
-          )}
-          {user?.perm_reabrir_viaje && <Campana />}
-
-          {/* Lupa */}
-          <button
-            onClick={() => setShowBuscar(true)}
-            className={`relative w-9 h-9 flex items-center justify-center rounded-full transition-colors
-              ${hayFiltros ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-            </svg>
-            {hayFiltros && (
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
-            )}
-          </button>
-
-          <button onClick={logout} className="text-sm text-gray-500">Salir</button>
-        </div>
-      </header>
+    <div className="min-h-screen bg-slate-50 relative">
+      <Watermark />
+      <AppHeader
+        title={user?.perm_ver_todos_viajes ? 'Viajes' : 'Mis Viajes'}
+        right={headerRight}
+      />
 
       {/* Lista principal */}
-      <main className="px-4 py-4 max-w-lg mx-auto pb-24">
+      <main className="px-4 py-4 max-w-lg mx-auto pb-32">
         {loading && (
           <div className="flex justify-center py-16">
-            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent" />
+            <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600 border-t-transparent" />
           </div>
         )}
         {error && <p className="text-center text-red-600 py-8 text-sm">{error}</p>}
-        {!loading && !error && viajes.length === 0 && (
-          <div className="text-center py-16 text-gray-400">
-            <div className="text-5xl mb-3">📋</div>
-            <p className="font-medium">No hay viajes aún</p>
-            <p className="text-sm mt-1">Crea el primero con el botón +</p>
+        {!loading && !error && viajes.filter(v => v.estado !== 'CANCELADO').length === 0 && (
+          <div className="text-center py-20">
+            <div className="text-6xl mb-4">🚗</div>
+            <p className="font-bold text-gray-700 text-lg">No hay viajes aún</p>
+            <p className="text-sm text-gray-400 mt-1">
+              {user?.perm_crear_viaje ? 'Toca el botón + para crear el primero' : 'No hay viajes registrados'}
+            </p>
           </div>
         )}
         <div className="space-y-3">
           {viajes.filter((v) => v.estado !== 'CANCELADO').slice(0, 6).map((v) => (
             <Link key={v.id} to={`/viajes/${v.id}`} className="block">
-              <div className={`card hover:shadow-md transition-shadow ${
-                v.estado === 'PROGRAMADO'
-                  ? 'border-l-4 border-l-indigo-400 bg-indigo-50/40'
-                  : ''
-              }`}>
-                {/* Encabezado viaje programado */}
-                {v.estado === 'PROGRAMADO' && v.programado_para && (
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="text-xs font-semibold text-indigo-700 bg-indigo-100 px-2 py-0.5 rounded-full">
-                      📅 Programado · {formatFecha(v.programado_para)}
-                    </span>
-                  </div>
-                )}
+              <div className={`card-trip border-l-4 ${borderColor[v.estado] || 'border-l-gray-200'} ${bgTint[v.estado] || ''}`}>
 
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-0.5">
-                      {v.codigo && (
-                        <span className="text-xs font-mono font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded">
-                          {v.codigo}
-                        </span>
-                      )}
-                      {(v.conductor_nombre || !['NO_INICIADO', 'PROGRAMADO'].includes(v.estado)) && (
-                        <p className="text-xs text-blue-600 font-medium">
-                          {v.conductor_nombre || v.creado_por_nombre}
-                        </p>
-                      )}
-                      {!v.conductor_nombre && ['NO_INICIADO', 'PROGRAMADO'].includes(v.estado) && (
-                        <p className="text-xs text-orange-500">Sin conductor asignado</p>
-                      )}
-                    </div>
-                    <p className="font-semibold text-gray-900 truncate">{v.origen} → {v.destino}</p>
-                    {v.estado !== 'PROGRAMADO' && (
-                      <p className="text-xs text-gray-500 mt-0.5">{formatFecha(v.creado_en)}</p>
+                {/* Fila superior: código + badge */}
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    {v.codigo && (
+                      <span className="text-xs font-mono font-black text-blue-700 bg-blue-100 px-2 py-0.5 rounded-lg">
+                        {v.codigo}
+                      </span>
+                    )}
+                    {v.estado === 'PROGRAMADO' && v.programado_para && (
+                      <span className="text-xs text-indigo-600 font-semibold">
+                        📅 {formatFecha(v.programado_para)}
+                      </span>
                     )}
                   </div>
                   <BadgeEstado estado={v.estado} />
                 </div>
-                {v.estado === 'FINALIZADO' && v.monto_total != null && (
-                  <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                    <span className="text-sm text-gray-500">Total</span>
-                    <span className="font-bold text-gray-900">{formatMonto(v.monto_total)}</span>
+
+                {/* Ruta */}
+                <div className="mb-2">
+                  <div className="flex items-center gap-1 text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
+                    <span>🔴 Origen</span>
                   </div>
-                )}
-                {v.placa_grua && <p className="text-xs text-gray-400 mt-1">Grúa: {v.placa_grua}</p>}
+                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">{v.origen}</p>
+                  <div className="flex items-center gap-1 my-1">
+                    <div className="w-0.5 h-3 bg-gray-300 ml-1.5 rounded" />
+                  </div>
+                  <div className="flex items-center gap-1 text-[11px] text-gray-400 font-semibold uppercase tracking-wide mb-0.5">
+                    <span>🟢 Destino</span>
+                  </div>
+                  <p className="font-bold text-gray-900 text-sm leading-tight truncate">{v.destino}</p>
+                </div>
+
+                {/* Fila inferior: conductor + fecha + monto */}
+                <div className="flex items-center justify-between pt-2 border-t border-gray-100 mt-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-base">👤</span>
+                    <span className="text-xs text-gray-500 font-medium truncate max-w-[130px]">
+                      {v.conductor_nombre || v.creado_por_nombre || 'Sin asignar'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {v.placa_grua && (
+                      <span className="text-xs font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+                        🚛 {v.placa_grua}
+                      </span>
+                    )}
+                    {v.estado === 'FINALIZADO' && v.monto_total != null && (
+                      <span className="text-sm font-black text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg">
+                        {formatMonto(v.monto_total)}
+                      </span>
+                    )}
+                    {v.estado !== 'FINALIZADO' && (
+                      <span className="text-xs text-gray-400">{formatFecha(v.creado_en)}</span>
+                    )}
+                  </div>
+                </div>
               </div>
             </Link>
           ))}
@@ -205,8 +224,8 @@ export default function MisViajes() {
         {viajes.filter((v) => v.estado !== 'CANCELADO').length > 6 && (
           <p className="text-center text-xs text-gray-400 mt-4">
             Mostrando los 6 más recientes.{' '}
-            <button onClick={() => setShowBuscar(true)} className="text-blue-600 font-medium underline">
-              Buscar viajes anteriores
+            <button onClick={() => setShowBuscar(true)} className="text-blue-600 font-semibold">
+              Ver más →
             </button>
           </p>
         )}
@@ -223,42 +242,37 @@ export default function MisViajes() {
             />
           )}
 
-          <div className="fixed bottom-6 right-6 z-30 flex flex-col items-end gap-3">
+          <div className="fixed bottom-20 right-4 z-30 flex flex-col items-end gap-3">
             {/* Opciones del menú */}
             {showFabMenu && (
               <div className="flex flex-col items-end gap-2 mb-1">
-                {/* Programar viaje */}
                 <button
                   onClick={() => { setShowFabMenu(false); navigate('/viajes/programar') }}
-                  className="flex items-center gap-3 bg-white text-gray-800 font-medium text-sm
-                             px-4 py-3 rounded-2xl shadow-lg border border-gray-100
-                             hover:bg-gray-50 active:bg-gray-100 transition-colors whitespace-nowrap"
+                  className="flex items-center gap-3 bg-white text-gray-800 font-semibold text-sm
+                             px-4 py-3 rounded-2xl shadow-xl border border-gray-100 whitespace-nowrap"
                 >
                   <span>Programar viaje</span>
-                  <span className="w-9 h-9 bg-indigo-600 rounded-full flex items-center justify-center text-white text-lg shrink-0">📅</span>
+                  <span className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-indigo-700 rounded-2xl flex items-center justify-center text-white text-lg shrink-0">📅</span>
                 </button>
-
-                {/* Agregar viaje */}
                 <button
                   onClick={() => { setShowFabMenu(false); navigate('/viajes/nuevo') }}
-                  className="flex items-center gap-3 bg-white text-gray-800 font-medium text-sm
-                             px-4 py-3 rounded-2xl shadow-lg border border-gray-100
-                             hover:bg-gray-50 active:bg-gray-100 transition-colors whitespace-nowrap"
+                  className="flex items-center gap-3 bg-white text-gray-800 font-semibold text-sm
+                             px-4 py-3 rounded-2xl shadow-xl border border-gray-100 whitespace-nowrap"
                 >
-                  <span>Agregar viaje</span>
-                  <span className="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white text-lg shrink-0">🚗</span>
+                  <span>Nuevo viaje</span>
+                  <span className="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl flex items-center justify-center text-white text-lg shrink-0">🚗</span>
                 </button>
               </div>
             )}
 
-            {/* Botón principal */}
+            {/* Botón principal FAB */}
             <button
               onClick={() => setShowFabMenu((v) => !v)}
-              className={`w-14 h-14 text-white rounded-full shadow-lg flex items-center justify-center
-                         text-3xl transition-all duration-200 ${
+              className={`w-14 h-14 text-white rounded-2xl shadow-xl flex items-center justify-center
+                         text-2xl font-bold transition-all duration-200 ${
                            showFabMenu
-                             ? 'bg-gray-600 rotate-45'
-                             : 'bg-blue-600 active:bg-blue-700'
+                             ? 'bg-gray-700 rotate-45 scale-90'
+                             : 'bg-gradient-to-br from-blue-500 to-blue-700 shadow-blue-300 active:scale-95'
                          }`}
             >
               +
@@ -399,6 +413,8 @@ export default function MisViajes() {
           </div>
         </div>
       )}
+
+      <BottomNav />
     </div>
   )
 }

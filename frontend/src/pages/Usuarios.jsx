@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import client from '../api/client'
 import InputPassword from '../components/InputPassword'
+import BottomNav from '../components/BottomNav'
+import AppHeader from '../components/AppHeader'
+import Watermark from '../components/Watermark'
 
 export default function Usuarios() {
   const navigate = useNavigate()
@@ -39,22 +42,21 @@ export default function Usuarios() {
 
   const nombreRol = (rol_id) => roles.find((r) => r.id === rol_id)?.nombre || `Rol ${rol_id}`
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="page-header">
-        <button onClick={() => navigate('/viajes')} className="text-blue-600 font-medium text-sm">← Volver</button>
-        <h1 className="font-bold text-gray-900 text-lg flex-1">Usuarios</h1>
-        {user?.perm_crear_usuarios && (
-          <button
-            onClick={() => { setUsuarioEditar(null); setShowForm(true) }}
-            className="text-sm text-blue-600 font-medium"
-          >
-            + Nuevo
-          </button>
-        )}
-      </header>
+  const headerRight = user?.perm_crear_usuarios ? (
+    <button
+      onClick={() => { setUsuarioEditar(null); setShowForm(true) }}
+      className="text-sm text-blue-600 font-semibold"
+    >
+      + Nuevo
+    </button>
+  ) : null
 
-      <main className="px-4 py-4 max-w-lg mx-auto space-y-3">
+  return (
+    <div className="min-h-screen bg-slate-50 relative">
+      <Watermark />
+      <AppHeader title="Usuarios" right={headerRight} />
+
+      <main className="px-4 py-4 max-w-lg mx-auto space-y-3 pb-24">
         {loading && (
           <div className="flex justify-center py-16">
             <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent" />
@@ -114,6 +116,7 @@ export default function Usuarios() {
           onClose={() => { setShowForm(false); setUsuarioEditar(null) }}
         />
       )}
+      <BottomNav />
     </div>
   )
 }
